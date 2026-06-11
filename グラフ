@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>高校数学グラフ学習システム Ver.2 改良版</title>
+
+<style>
+body{
+    font-family:sans-serif;
+    margin:10px;
+}
+
+canvas{
+    border:1px solid black;
+    max-width:100%;
+}
+
+.control{
+    margin:8px 0;
+}
+
+input[type=range]{
+    width:200px;
+}
+
+input[type=number]{
+    width:70px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>高校数学グラフ学習システム Ver.2</h2>
+
+<select id="mode">
+    <option value="linear">1次関数（2本表示）</option>
+    <option value="quadratic">2次関数</option>
+</select>
+
+<div id="controls"></div>
+
+<h3 id="formula"></h3>
+<div id="info"></div>
+
+<canvas id="cv" width="900" height="600"></canvas>
+
+<script>
+
+const canvas = document.getElementById("cv");
+const ctx = canvas.getContext("2d");
+
+const mode = document.getElementById("mode");
+const controls = document.getElementById("controls");
+
+function createSlider(id,label,min,max,val,step=0.1){
+
+return `
+<div class="control">
+
+${label}
+
+<input
+type="range"
+id="${id}"
+min="${min}"
+max="${max}"
+step="${step}"
+value="${val}">
+
+<input
+type="number"
+id="${id}_num"
+step="${step}"
+value="${val}">
+
+</div>
+`;
+}
+
+function bindPair(id){
+
+const s=document.getElementById(id);
+const n=document.getElementById(id+"_num");
+
+s.oninput=()=>{
+    n.value=s.value;
+    draw();
+};
+
+n.oninput=()=>{
+    s.value=n.value;
+    draw();
+};
+}
+
+function setup(){
+
+if(mode.value==="linear"){
+
+controls.innerHTML=
+
+"<h3>直線①</h3>"+
+
+createSlider("a1","a₁",-10,10,1)+
+createSlider("b1","b₁",-10,10,0)+
+
+"<h3>直線②</h3>"+
+
+createSlider("a2","a₂",-10,10,-1)+
+createSlider("b2","b₂",-10,10,4);
+
+bindPair("a1");
+bindPair("b1");
+bindPair("a2");
+bindPair("b2");
+}
+
+if(mode.value==="quadratic"){
+
+controls.innerHTML=
+
+createSlider("a","a",-5,5,1)+
+createSlider("b","b",-10,10,0)+
+createSlider("c","c",-10,10,0);
+
+bindPair("a");
+bindPair("b");
+bindPair("c");
+}
+
+draw();
+}
+
+function drawAxes(){
+
+ctx.clearRect(0,0,900,600);
+
+const s=40;
+const cx=440;
+const cy=280;
+
+ctx.strokeStyle="#e0e0e0";
+
+for(let x=cx;x<900;x+=s){
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,600);
+    ctx.stroke();
+}
+
+for(let x=cx;x>0;x-=s){
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,600);
+    ctx.stroke();
+}
+
+for(let y=cy;y<600;y+=s){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(900,y);
+    ctx.stroke();
+}
+
+for(let y=cy;y>0;y-=s){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(900,y);
+    ctx.stroke();
+}
+
+ctx.strokeStyle="black";
+
+ctx.beginPath();
+ctx.moveTo(0,cy);
+ctx.lineTo(900,cy);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(cx,0);
+ctx.lineTo(cx,600);
+ctx.stroke();
+
+return {s,cx,cy};
+}
+
+function draw(){
+
+const {s,cx,cy}=drawAxes();
+
+if(mode.value==="linear"){
+
+const A1=Number(a1.value);
+const B1=Number(b1.value);
+
+const A2=Number(a2.value);
+const B2=Number(b2.value);
+
+ctx.strokeStyle="red";
+ctx.lineWidth=2;
+
+ctx.beginPath();
+ctx.moveTo(cx+(-20)*s,cy-(A1*(-20)+B1)*s);
+ctx.lineTo(cx+(20)*s,cy-(A1*(20)+B1)*s);
+ctx.stroke();
+
+ctx.strokeStyle="blue";
+
+ctx.beginPath();
+ctx.moveTo(cx+(-20)*s,cy-(A2*(-20)+B2)*s);
+ctx.lineTo(cx+(20)*s,cy-(A2*(20)+B2)*s);
+ctx.stroke();
+
+formula.innerHTML=
+`直線①：y=${A1}x+${B1}<br>
+直線②：y=${A2}x+${B2}`;
+
+if(A1!==A2){
+
+let x=(B2-B1)/(A1-A2);
+let y=A1*x+B1;
+
+ctx.fillStyle="green";
+
+ctx.beginPath();
+ctx.arc(
+cx+x*s,
+cy-y*s,
+6,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+info.innerHTML=
+`交点：(${x.toFixed(2)}, ${y.toFixed(2)})`;
+}
+else{
+info.innerHTML="平行な直線";
+}
+
+}
+
+if(mode.value==="quadratic"){
+
+const A=Number(a.value);
+const B=Number(b.value);
+const C=Number(c.value);
+
+ctx.strokeStyle="red";
+ctx.lineWidth=2;
+
+ctx.beginPath();
+
+let first=true;
+
+for(let x=-10;x<=10;x+=0.02){
+
+let y=A*x*x+B*x+C;
+
+let px=cx+x*s;
+let py=cy-y*s;
+
+if(py>-2000 && py<2000){
+
+if(first){
+ctx.moveTo(px,py);
+first=false;
+}
+else{
+ctx.lineTo(px,py);
+}
+
+}else{
+first=true;
+}
+}
+
+ctx.stroke();
+
+formula.innerHTML=
+`y=${A}x²+${B}x+${C}`;
+
+info.innerHTML="";
+}
+}
+
+mode.onchange=setup;
+
+setup();
+
+</script>
+
+</body>
+</html>
