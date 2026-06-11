@@ -3,149 +3,296 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>高校数学グラフ学習システム Ver2</title>
+<title>高校数学グラフ学習システム Ver.2 改良版</title>
+
 <style>
-body{font-family:sans-serif;margin:15px}
-canvas{border:1px solid #333;max-width:100%}
-.row{margin:6px 0}
-label{display:inline-block;width:30px}
-input[type=range]{width:220px}
-input[type=number]{width:80px}
-.panel{padding:10px;border:1px solid #ccc;margin:10px 0}
+body{
+    font-family:sans-serif;
+    margin:10px;
+}
+
+canvas{
+    border:1px solid black;
+    max-width:100%;
+}
+
+.control{
+    margin:8px 0;
+}
+
+input[type=range]{
+    width:200px;
+}
+
+input[type=number]{
+    width:70px;
+}
 </style>
 </head>
+
 <body>
+
 <h2>高校数学グラフ学習システム Ver.2</h2>
 
 <select id="mode">
-<option value="linear">1次関数</option>
-<option value="quadratic">2次関数</option>
+    <option value="linear">1次関数（2本表示）</option>
+    <option value="quadratic">2次関数</option>
 </select>
 
-<div id="controls" class="panel"></div>
-
-<div class="panel">
-<h3>式を直接入力</h3>
-<div id="formulaInputs"></div>
-<button onclick="syncFormula()">式を反映</button>
-</div>
+<div id="controls"></div>
 
 <h3 id="formula"></h3>
+<div id="info"></div>
+
 <canvas id="cv" width="900" height="600"></canvas>
 
 <script>
-const controls=document.getElementById("controls");
-const formulaInputs=document.getElementById("formulaInputs");
-const cv=document.getElementById("cv");
-const ctx=cv.getContext("2d");
 
-function createParam(name,min,max,val,step=0.1){
- return `<div class="row">
- <label>${name}</label>
- <input type="range" id="${name}" min="${min}" max="${max}" step="${step}" value="${val}">
- <input type="number" id="${name}_num" step="${step}" value="${val}">
- </div>`;
+const canvas = document.getElementById("cv");
+const ctx = canvas.getContext("2d");
+
+const mode = document.getElementById("mode");
+const controls = document.getElementById("controls");
+
+function createSlider(id,label,min,max,val,step=0.1){
+
+return `
+<div class="control">
+
+${label}
+
+<input
+type="range"
+id="${id}"
+min="${min}"
+max="${max}"
+step="${step}"
+value="${val}">
+
+<input
+type="number"
+id="${id}_num"
+step="${step}"
+value="${val}">
+
+</div>
+`;
 }
 
 function bindPair(id){
- const s=document.getElementById(id);
- const n=document.getElementById(id+"_num");
- s.oninput=()=>{n.value=s.value;draw();updateFormulaBoxes();};
- n.oninput=()=>{s.value=n.value;draw();updateFormulaBoxes();};
+
+const s=document.getElementById(id);
+const n=document.getElementById(id+"_num");
+
+s.oninput=()=>{
+    n.value=s.value;
+    draw();
+};
+
+n.oninput=()=>{
+    s.value=n.value;
+    draw();
+};
 }
 
 function setup(){
- const m=document.getElementById("mode").value;
 
- if(m==="linear"){
-   controls.innerHTML=createParam("a",-10,10,1)+createParam("b",-10,10,0);
-   formulaInputs.innerHTML=`
-   a=<input id="fa" value="1">
-   b=<input id="fb" value="0">
-   <br>y=ax+b`;
- }
+if(mode.value==="linear"){
 
- if(m==="quadratic"){
-   controls.innerHTML=createParam("a",-5,5,1)+createParam("b",-10,10,0)+createParam("c",-10,10,0);
-   formulaInputs.innerHTML=`
-   a=<input id="fa" value="1">
-   b=<input id="fb" value="0">
-   c=<input id="fc" value="0">
-   <br>y=ax²+bx+c`;
- }
+controls.innerHTML=
 
- document.querySelectorAll('input[type="range"]').forEach(x=>bindPair(x.id));
- draw();
+"<h3>直線①</h3>"+
+
+createSlider("a1","a₁",-10,10,1)+
+createSlider("b1","b₁",-10,10,0)+
+
+"<h3>直線②</h3>"+
+
+createSlider("a2","a₂",-10,10,-1)+
+createSlider("b2","b₂",-10,10,4);
+
+bindPair("a1");
+bindPair("b1");
+bindPair("a2");
+bindPair("b2");
 }
 
-function updateFormulaBoxes(){
- if(document.getElementById("fa")) fa.value=a.value;
- if(document.getElementById("fb")) fb.value=b.value;
- if(document.getElementById("fc") && document.getElementById("c")) fc.value=c.value;
+if(mode.value==="quadratic"){
+
+controls.innerHTML=
+
+createSlider("a","a",-5,5,1)+
+createSlider("b","b",-10,10,0)+
+createSlider("c","c",-10,10,0);
+
+bindPair("a");
+bindPair("b");
+bindPair("c");
 }
 
-function syncFormula(){
- a.value=fa.value;
- a_num.value=fa.value;
- b.value=fb.value;
- b_num.value=fb.value;
-
- if(document.getElementById("c")){
-   c.value=fc.value;
-   c_num.value=fc.value;
- }
- draw();
+draw();
 }
 
 function drawAxes(){
- ctx.clearRect(0,0,900,600);
- const s=40,cx=450,cy=300;
 
- ctx.strokeStyle="#ddd";
- for(let i=0;i<900;i+=s){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,600);ctx.stroke();}
- for(let i=0;i<600;i+=s){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(900,i);ctx.stroke();}
+ctx.clearRect(0,0,900,600);
 
- ctx.strokeStyle="black";
- ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(900,cy);ctx.stroke();
- ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,600);ctx.stroke();
+const s=40;
+const cx=440;
+const cy=280;
 
- return {s,cx,cy};
+ctx.strokeStyle="#e0e0e0";
+
+for(let x=cx;x<900;x+=s){
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,600);
+    ctx.stroke();
+}
+
+for(let x=cx;x>0;x-=s){
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,600);
+    ctx.stroke();
+}
+
+for(let y=cy;y<600;y+=s){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(900,y);
+    ctx.stroke();
+}
+
+for(let y=cy;y>0;y-=s){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(900,y);
+    ctx.stroke();
+}
+
+ctx.strokeStyle="black";
+
+ctx.beginPath();
+ctx.moveTo(0,cy);
+ctx.lineTo(900,cy);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(cx,0);
+ctx.lineTo(cx,600);
+ctx.stroke();
+
+return {s,cx,cy};
 }
 
 function draw(){
- const {s,cx,cy}=drawAxes();
- const mode=document.getElementById("mode").value;
 
- ctx.strokeStyle="red";
- ctx.lineWidth=2;
- ctx.beginPath();
+const {s,cx,cy}=drawAxes();
 
- let first=true;
+if(mode.value==="linear"){
 
- for(let x=-10;x<=10;x+=0.02){
-   let y=0;
+const A1=Number(a1.value);
+const B1=Number(b1.value);
 
-   if(mode==="linear"){
-      y=Number(a.value)*x+Number(b.value);
-      formula.textContent=`y=${a.value}x + ${b.value}`;
-   }
+const A2=Number(a2.value);
+const B2=Number(b2.value);
 
-   if(mode==="quadratic"){
-      y=Number(a.value)*x*x+Number(b.value)*x+Number(c.value);
-      formula.textContent=`y=${a.value}x² + ${b.value}x + ${c.value}`;
-   }
+ctx.strokeStyle="red";
+ctx.lineWidth=2;
 
-   let px=cx+x*s;
-   let py=cy-y*s;
+ctx.beginPath();
+ctx.moveTo(cx+(-20)*s,cy-(A1*(-20)+B1)*s);
+ctx.lineTo(cx+(20)*s,cy-(A1*(20)+B1)*s);
+ctx.stroke();
 
-   if(first){ctx.moveTo(px,py);first=false;}
-   else{ctx.lineTo(px,py);}
- }
- ctx.stroke();
+ctx.strokeStyle="blue";
+
+ctx.beginPath();
+ctx.moveTo(cx+(-20)*s,cy-(A2*(-20)+B2)*s);
+ctx.lineTo(cx+(20)*s,cy-(A2*(20)+B2)*s);
+ctx.stroke();
+
+formula.innerHTML=
+`直線①：y=${A1}x+${B1}<br>
+直線②：y=${A2}x+${B2}`;
+
+if(A1!==A2){
+
+let x=(B2-B1)/(A1-A2);
+let y=A1*x+B1;
+
+ctx.fillStyle="green";
+
+ctx.beginPath();
+ctx.arc(
+cx+x*s,
+cy-y*s,
+6,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+info.innerHTML=
+`交点：(${x.toFixed(2)}, ${y.toFixed(2)})`;
+}
+else{
+info.innerHTML="平行な直線";
+}
+
+}
+
+if(mode.value==="quadratic"){
+
+const A=Number(a.value);
+const B=Number(b.value);
+const C=Number(c.value);
+
+ctx.strokeStyle="red";
+ctx.lineWidth=2;
+
+ctx.beginPath();
+
+let first=true;
+
+for(let x=-10;x<=10;x+=0.02){
+
+let y=A*x*x+B*x+C;
+
+let px=cx+x*s;
+let py=cy-y*s;
+
+if(py>-2000 && py<2000){
+
+if(first){
+ctx.moveTo(px,py);
+first=false;
+}
+else{
+ctx.lineTo(px,py);
+}
+
+}else{
+first=true;
+}
+}
+
+ctx.stroke();
+
+formula.innerHTML=
+`y=${A}x²+${B}x+${C}`;
+
+info.innerHTML="";
+}
 }
 
 mode.onchange=setup;
+
 setup();
+
 </script>
+
 </body>
 </html>
